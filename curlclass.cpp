@@ -20,10 +20,13 @@ ViolationUploader *ViolationUploader::GetInstance(const string &ip_param){
 
 vector<string> ViolationUploader::postImages(const vector<Mat> &imgs){
     /*
-        * Post image files to backend server, and return the response id for each image.
-        */
+     * Post image files to backend server, and return the response id for each image.
+     */
+
     LOG(INFO) << "Function postImages begin!" << endl;
+
     LOG_IF(ERROR, imgs.size()!=3) << "imgs.size() is not 3! Its value is: " << imgs.size() << endl;
+
     CURL *curl;
     CURLcode res;
 
@@ -61,6 +64,7 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs){
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
 
         res = curl_easy_perform(curl);
+
         LOG_IF(ERROR, res!=CURLE_OK) << "curl_easy_perform() faild: " << curl_easy_strerror(res) << endl;
 
         Document doc;
@@ -73,12 +77,14 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs){
         curl_easy_cleanup(curl);
     }
     curl_global_cleanup();
+
     LOG(INFO) << "Function postImages end!" << endl;
+
     return r;
-    
 }
 
 void ViolationUploader::postJsonData(const string &json_data){
+
     LOG(INFO) << "Function postJsonData begin!" << endl;
 
     CURL *curl;
@@ -94,19 +100,23 @@ void ViolationUploader::postJsonData(const string &json_data){
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data.c_str());
         res = curl_easy_perform(curl);
+
         LOG_IF(ERROR, res!=CURLE_OK) << "curl_easy_perform() faild: " << curl_easy_strerror(res) << endl;
+
         curl_easy_cleanup(curl);
     }
 
     curl_global_cleanup();
-    LOG(INFO) << "Function postJsonData end!" << endl;
 
+    LOG(INFO) << "Function postJsonData end!" << endl;
 }
 
 void ViolationUploader::postJson(string &json_incomp, const vector<string> &ids){
+
     LOG(INFO) << "Function postJson begin!" << endl;
 
     LOG_IF(ERROR, ids.size()!=3) << "ids.size() is not 3! Its value is: " << ids.size() << endl;
+
     Document doc;
     doc.Parse(json_incomp.c_str(), json_incomp.size());
 
@@ -132,6 +142,7 @@ void ViolationUploader::postJson(string &json_incomp, const vector<string> &ids)
     string json_comp = s.GetString();
 
     postJsonData(json_comp);
+
     LOG(INFO) << "Function postJson end!" << endl;
 }
 
@@ -139,6 +150,8 @@ void ViolationUploader::postJson(string &json_incomp, const vector<string> &ids)
 void ViolationUploader::collectInfo(violationData *data_p){
     lock_guard<mutex> lock(mutex_queue);
     info_q.push(data_p);
+
+    LOG(INFO) << "violationData pointer pushed to queue!" << endl;
 }
 
 void ViolationUploader::postInfo()
@@ -164,6 +177,7 @@ void ViolationUploader::postInfo()
             if (t != nullptr)
             {
                 LOG(INFO) << "t->imgs.size() is: " << t->imgs.size();
+
                 vector<string> respon_ids = postImages(t->imgs);
                 postJson(t->json, respon_ids);
                 delete t;

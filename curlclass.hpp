@@ -16,6 +16,7 @@
 #include <thread>
 #include <queue>
 #include <chrono>
+#include <map>
 
 using namespace rapidjson;
 using namespace std;
@@ -61,6 +62,7 @@ private:
 
 public:
     // ViolationUploader(ViolationUploader &other) = delete;
+    
 
     // void operator=(const ViolationUploader &) = delete;
 
