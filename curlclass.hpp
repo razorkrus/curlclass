@@ -64,12 +64,12 @@ public:
 
     // void operator=(const ViolationUploader &) = delete;
 
-    vector<string> postImages(vector<Mat> &imgs);
-    void postJsonData(string &json_data);
-    void postJson(string &json_incomp, vector<string> &ids);
+    vector<string> postImages(const vector<Mat> &imgs);
+    void postJsonData(const string &json_data);
+    void postJson(string &json_incomp, const vector<string> &ids);
 
 
-    static ViolationUploader *GetInstance(string &ip_param);
+    static ViolationUploader *GetInstance(const string &ip_param);
 
     void collectInfo(violationData *data_p);
     void postInfo();

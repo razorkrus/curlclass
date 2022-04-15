@@ -9,7 +9,7 @@ ViolationUploader* pinstance_{nullptr};
 mutex mutex_instance;
 mutex mutex_queue;
 
-ViolationUploader *ViolationUploader::GetInstance(string &ip_param){
+ViolationUploader *ViolationUploader::GetInstance(const string &ip_param){
     lock_guard<mutex> lock(mutex_instance);
     if (pinstance_ == nullptr)
     {
@@ -18,7 +18,7 @@ ViolationUploader *ViolationUploader::GetInstance(string &ip_param){
     return pinstance_;
 }
 
-vector<string> ViolationUploader::postImages(vector<Mat> &imgs){
+vector<string> ViolationUploader::postImages(const vector<Mat> &imgs){
     /*
         * Post image files to backend server, and return the response id for each image.
         */
@@ -79,7 +79,7 @@ cout << "------------------------------------------ 3" << endl;
     
 }
 
-void ViolationUploader::postJsonData(string &json_data){
+void ViolationUploader::postJsonData(const string &json_data){
     LOG(INFO) << "Function postJsonData begin!" << endl;
 
     CURL *curl;
@@ -104,7 +104,7 @@ void ViolationUploader::postJsonData(string &json_data){
 
 }
 
-void ViolationUploader::postJson(string &json_incomp, vector<string> &ids){
+void ViolationUploader::postJson(string &json_incomp, const vector<string> &ids){
     LOG(INFO) << "Function postJson begin!" << endl;
 
     Document doc;
@@ -163,13 +163,13 @@ void ViolationUploader::postInfo()
             }
             if (t != nullptr)
             {
-                cout << "t->imgs is: " << t->imgs.size() << endl;
+                LOG(INFO) << "t->imgs.size() is: " << t->imgs.size();
                 vector<string> respon_ids = postImages(t->imgs);
                 postJson(t->json, respon_ids);
                 delete t;
             }
             else{
-                cout << "t is nULL !!!!!" << endl;
+                LOG(ERROR) << "Queue top is nullptr!" << endl;
             }
         }
     }
