@@ -23,18 +23,17 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs){
         * Post image files to backend server, and return the response id for each image.
         */
     LOG(INFO) << "Function postImages begin!" << endl;
+    LOG_IF(ERROR, imgs.size()!=3) << "imgs.size() is not 3! Its value is: " << imgs.size() << endl;
     CURL *curl;
     CURLcode res;
 
-cout << "imgs size is: " << imgs.size() << endl;
-
     curl_mime *form = nullptr;
     curl_mimepart *field = nullptr;
-cout << "------------------------------------------ 1" << endl;
+
     curl_global_init(CURL_GLOBAL_ALL);
     curl = curl_easy_init();
     vector<string> r;
-cout << "------------------------------------------ 2" << endl;
+
     if (curl){
         form = curl_mime_init(curl);
 
@@ -54,8 +53,8 @@ cout << "------------------------------------------ 2" << endl;
             curl_mime_filename(field, "001.jpg"); // need to change later to add a suitable file name
             curl_mime_data(field, reinterpret_cast<const char*>(vec_img.data()), vec_img.size());
         }
-cout << "------------------------------------------ 3" << endl;
         curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
+
         curl_easy_setopt(curl, CURLOPT_URL, image_upload_url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_func);
         string s;
@@ -100,37 +99,38 @@ void ViolationUploader::postJsonData(const string &json_data){
     }
 
     curl_global_cleanup();
-    LOG(INFO) << "Function postJsonData begin!" << endl;
+    LOG(INFO) << "Function postJsonData end!" << endl;
 
 }
 
 void ViolationUploader::postJson(string &json_incomp, const vector<string> &ids){
     LOG(INFO) << "Function postJson begin!" << endl;
 
+    LOG_IF(ERROR, ids.size()!=3) << "ids.size() is not 3! Its value is: " << ids.size() << endl;
     Document doc;
     doc.Parse(json_incomp.c_str(), json_incomp.size());
-cout << "-----------------------------1" << endl;
-    // for (auto id : ids){
-    //     Value v;
-    //     v.SetString(id.c_str(), id.size(), doc.GetAllocator());
-    //     doc.AddMember("imgOne", v, doc.GetAllocator());
-    // }
-cout << ids.size() << endl;
-    Value v;
-    v.SetString(ids[0].c_str(), ids[0].size(), doc.GetAllocator());
-    doc.AddMember("imgOne", v, doc.GetAllocator());
-    cout << "-----------------------------2" << endl;
-    // v.SetString(ids[1].c_str(), ids[1].size(), doc.GetAllocator());
-    // doc.AddMember("imgTwo", v, doc.GetAllocator());
-    // cout << "-----------------------------3" << endl;
-    // v.SetString(ids[2].c_str(), ids[2].size(), doc.GetAllocator());
-    // doc.AddMember("imgThree", v, doc.GetAllocator());
+
+    map<int, string> numWords;
+    numWords[1] = "One";
+    numWords[2] = "Two";
+    numWords[3] = "Three";
+
+    Value k, v;
+    int i = 1;
+    for (auto id: ids){
+        string t = "img" + numWords[i];
+        k.SetString(t.c_str(), t.size(), doc.GetAllocator());
+        v.SetString(id.c_str(), id.size(), doc.GetAllocator());
+        doc.AddMember(k, v, doc.GetAllocator());
+        i++;
+    }
+
     StringBuffer s;
     Writer<StringBuffer> writer(s);
-    cout << "-----------------------------4" << endl;
+
     doc.Accept(writer);
     string json_comp = s.GetString();
-    cout << "-----------------------------5" << endl;
+
     postJsonData(json_comp);
     LOG(INFO) << "Function postJson end!" << endl;
 }
