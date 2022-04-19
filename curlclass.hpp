@@ -42,11 +42,12 @@ inline size_t write_func(void *ptr, size_t size, size_t nmemb, string *s){
  *****/
 class ViolationUploader
 {
-    ViolationUploader(string ip_param){
+    ViolationUploader(string ip_param, string port_param){
         
         ip_address = ip_param;
-        image_upload_url = "http://" + ip_address + ":8093/api/file/upload";
-        json_upload_url = "http://" + ip_address + ":8093/api/record/insert";
+        port_num = port_param;
+        image_upload_url = "http://" + ip_address + ":" + port_num +"/api/file/upload";
+        json_upload_url = "http://" + ip_address + ":" + port_num +"/api/record/insert";
     }
     ~ViolationUploader() {}
 
@@ -56,6 +57,7 @@ private:
     // static mutex mutex_queue;
     queue<violationData *> info_q;
     string ip_address;
+    string port_num;
     string image_upload_url;
     string json_upload_url;
 

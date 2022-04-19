@@ -9,11 +9,11 @@ ViolationUploader* pinstance_{nullptr};
 mutex mutex_instance;
 mutex mutex_queue;
 
-ViolationUploader *ViolationUploader::GetInstance(const string &ip_param){
+ViolationUploader *ViolationUploader::GetInstance(const string &ip_param, const string &port_param){
     lock_guard<mutex> lock(mutex_instance);
     if (pinstance_ == nullptr)
     {
-        pinstance_ = new ViolationUploader(ip_param);
+        pinstance_ = new ViolationUploader(ip_param, port_param);
     }
     return pinstance_;
 }
@@ -65,13 +65,16 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs){
 
         res = curl_easy_perform(curl);
 
-        LOG_IF(ERROR, res!=CURLE_OK) << "curl_easy_perform() faild: " << curl_easy_strerror(res) << endl;
-
-        Document doc;
-        doc.Parse(s.c_str(), s.size());
-        const Value& a = doc["data"];
-        for (SizeType i=0; i < a.Size(); i++){
-            r.push_back(a[i]["id"].GetString());
+        if (res!=CURLE_OK){
+            LOG(ERROR) << "Inside function" << __func__ << ", curl_easy_perform() faild: " << curl_easy_strerror(res) << endl;
+        }
+        else{
+            Document doc;
+            doc.Parse(s.c_str(), s.size());
+            const Value& a = doc["data"];
+            for (SizeType i=0; i < a.Size(); i++){
+                r.push_back(a[i]["id"].GetString());
+            }
         }
 
         curl_easy_cleanup(curl);
@@ -101,7 +104,7 @@ void ViolationUploader::postJsonData(const string &json_data){
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data.c_str());
         res = curl_easy_perform(curl);
 
-        LOG_IF(ERROR, res!=CURLE_OK) << "curl_easy_perform() faild: " << curl_easy_strerror(res) << endl;
+        LOG_IF(ERROR, res!=CURLE_OK) << "Inside function" << __func__ << ", curl_easy_perform() faild: " << curl_easy_strerror(res) << endl;
 
         curl_easy_cleanup(curl);
     }
@@ -120,21 +123,24 @@ void ViolationUploader::postJson(string &json_incomp, const vector<string> &ids)
     Document doc;
     doc.Parse(json_incomp.c_str(), json_incomp.size());
 
-    map<int, string> numWords;
-    numWords[1] = "One";
-    numWords[2] = "Two";
-    numWords[3] = "Three";
+    if (!ids.empty())
+    {
+        map<int, string> numWords;
+        numWords[1] = "One";
+        numWords[2] = "Two";
+        numWords[3] = "Three";
 
-    Value k, v;
-    int i = 1;
-    for (auto id: ids){
-        string t = "img" + numWords[i];
-        k.SetString(t.c_str(), t.size(), doc.GetAllocator());
-        v.SetString(id.c_str(), id.size(), doc.GetAllocator());
-        doc.AddMember(k, v, doc.GetAllocator());
-        i++;
+        Value k, v;
+        int i = 1;
+        for (auto id: ids){
+            string t = "img" + numWords[i];
+            k.SetString(t.c_str(), t.size(), doc.GetAllocator());
+            v.SetString(id.c_str(), id.size(), doc.GetAllocator());
+            doc.AddMember(k, v, doc.GetAllocator());
+            i++;
+        }
     }
-
+    
     StringBuffer s;
     Writer<StringBuffer> writer(s);
 
