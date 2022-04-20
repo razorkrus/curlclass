@@ -63,7 +63,10 @@ private:
     string port_num;
     string image_upload_url;
     string json_upload_url;
+    CURL *image_curl;
+    CURL *json_curl;
 
+    void two_curl_init();
 
 public:
     // ViolationUploader(ViolationUploader &other) = delete;

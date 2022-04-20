@@ -1,6 +1,5 @@
 #include "curlclass.hpp"
 
-
 // ViolationUploader* ViolationUploader::pinstance_{nullptr};
 // mutex ViolationUploader::mutex_instance;
 // mutex ViolationUploader::mutex_queue;
@@ -8,6 +7,45 @@
 ViolationUploader* pinstance_{nullptr};
 mutex mutex_instance;
 mutex mutex_queue;
+
+
+void ViolationUploader::two_curl_init()
+{
+    curl_global_init(CURL_GLOBAL_ALL);
+
+    image_curl = curl_easy_init();
+    if (image_curl)
+    {
+        curl_easy_setopt(image_curl, CURLOPT_URL, image_upload_url.c_str());
+        curl_easy_setopt(image_curl, CURLOPT_TCP_KEEPALIVE, 1L);
+        curl_easy_setopt(image_curl, CURLOPT_TCP_KEEPIDLE, 120L);
+        curl_easy_setopt(image_curl, CURLOPT_TCP_KEEPINTVL, 60L);
+
+        curl_easy_setopt(image_curl, CURLOPT_NOSIGNAL, 1L);
+        curl_easy_setopt(image_curl, CURLOPT_TIMEOUT, 30L);
+        curl_easy_setopt(image_curl, CURLOPT_CONNECTTIMEOUT, 10L);
+
+    }
+
+    json_curl = curl_easy_init();
+    if (json_curl)
+    {
+        curl_easy_setopt(json_curl, CURLOPT_URL, image_upload_url.c_str());
+        curl_easy_setopt(json_curl, CURLOPT_TCP_KEEPALIVE, 1L);
+        curl_easy_setopt(json_curl, CURLOPT_TCP_KEEPIDLE, 120L);
+        curl_easy_setopt(json_curl, CURLOPT_TCP_KEEPINTVL, 60L);
+
+        curl_easy_setopt(json_curl, CURLOPT_NOSIGNAL, 1L);
+        curl_easy_setopt(json_curl, CURLOPT_TIMEOUT, 30L);
+        curl_easy_setopt(json_curl, CURLOPT_CONNECTTIMEOUT, 10L);
+        
+        struct curl_slist* headers = nullptr;
+        headers = curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
+        curl_easy_setopt(json_curl, CURLOPT_HTTPHEADER, headers);
+    }
+
+}
+
 
 ViolationUploader *ViolationUploader::GetInstance(const string &ip_param, const string &port_param)
 {
@@ -19,6 +57,7 @@ ViolationUploader *ViolationUploader::GetInstance(const string &ip_param, const 
     return pinstance_;
 }
 
+
 vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
 {
     /*
@@ -29,18 +68,17 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
 
     LOG_IF(ERROR, imgs.size()!=3) << "imgs.size() is not 3! Its value is: " << imgs.size() << endl;
 
-    CURL *curl;
-    CURLcode res;
-
     curl_mime *form = nullptr;
     curl_mimepart *field = nullptr;
 
-    curl_global_init(CURL_GLOBAL_ALL);
-    curl = curl_easy_init();
+    // curl_global_init(CURL_GLOBAL_ALL);
+    // curl = curl_easy_init();
+
+    CURLcode res;
     vector<string> r;
 
-    if (curl){
-        form = curl_mime_init(curl);
+    if (image_curl){
+        form = curl_mime_init(image_curl);
 
         field = curl_mime_addpart(form);
         curl_mime_name(field, "module");
@@ -58,17 +96,19 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
             curl_mime_filename(field, "001.jpg"); // need to change later to add a suitable file name
             curl_mime_data(field, reinterpret_cast<const char*>(vec_img.data()), vec_img.size());
         }
-        curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
+        curl_easy_setopt(image_curl, CURLOPT_MIMEPOST, form);
 
-        curl_easy_setopt(curl, CURLOPT_URL, image_upload_url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_func);
+        // curl_easy_setopt(curl, CURLOPT_URL, image_upload_url.c_str());
+        curl_easy_setopt(image_curl, CURLOPT_WRITEFUNCTION, write_func);
         string s;
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+        curl_easy_setopt(image_curl, CURLOPT_WRITEDATA, &s);
 
-        res = curl_easy_perform(curl);
+        res = curl_easy_perform(image_curl);
 
         if (res!=CURLE_OK){
-            LOG(ERROR) << "Inside function" << __func__ << ", curl_easy_perform() faild: " << curl_easy_strerror(res) << endl;
+            LOG(ERROR)  << "Inside function" << __func__ 
+                        << ", curl_easy_perform() faild: " << curl_easy_strerror(res) 
+                        << endl;
         }
         else{
             Document doc;
@@ -79,43 +119,46 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
             }
         }
 
-        curl_easy_cleanup(curl);
+        // curl_easy_cleanup(curl);
     }
-    curl_global_cleanup();
+    // curl_global_cleanup();
 
     LOG(INFO) << "Function postImages end!" << endl;
 
     return r;
 }
 
+
 void ViolationUploader::postJsonData(const string &json_data)
 {
 
     LOG(INFO) << "Function postJsonData begin!" << endl;
 
-    CURL *curl;
     CURLcode res;
 
-    curl_global_init(CURL_GLOBAL_ALL);
-    curl = curl_easy_init();
+    // curl_global_init(CURL_GLOBAL_ALL);
+    // curl = curl_easy_init();
 
-    if (curl){
-        curl_easy_setopt(curl, CURLOPT_URL, json_upload_url.c_str());
-        struct curl_slist* headers = nullptr;
-        headers = curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data.c_str());
-        res = curl_easy_perform(curl);
+    if (json_curl){
+        // curl_easy_setopt(curl, CURLOPT_URL, json_upload_url.c_str());
+        // struct curl_slist* headers = nullptr;
+        // headers = curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
+        // curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(json_curl, CURLOPT_POSTFIELDS, json_data.c_str());
+        res = curl_easy_perform(json_curl);
 
-        LOG_IF(ERROR, res!=CURLE_OK) << "Inside function" << __func__ << ", curl_easy_perform() faild: " << curl_easy_strerror(res) << endl;
+        LOG_IF(ERROR, res!=CURLE_OK)    << "Inside function" << __func__ 
+                                        << ", curl_easy_perform() faild: " << curl_easy_strerror(res) 
+                                        << endl;
 
-        curl_easy_cleanup(curl);
+        // curl_easy_cleanup(curl);
     }
 
-    curl_global_cleanup();
+    // curl_global_cleanup();
 
     LOG(INFO) << "Function postJsonData end!" << endl;
 }
+
 
 void ViolationUploader::postJson(string &json_incomp, const vector<string> &ids)
 {
@@ -165,6 +208,7 @@ void ViolationUploader::collectInfo(violationData *data_p)
     LOG(INFO) << "violationData pointer pushed to queue!" << endl;
 }
 
+
 void ViolationUploader::postInfo()
 {
     int i = 0;
@@ -211,6 +255,7 @@ void ThreadUploader(const string &ip_param, const string &port_param)
     ViolationUploader* uploader = ViolationUploader::GetInstance(ip_param, port_param);
     uploader->postInfo();
 }
+
 
 void GetNodeConfig(const string &ip_param, const string &port_param, const string &node_id)
 {
