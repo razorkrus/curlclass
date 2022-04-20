@@ -25,13 +25,15 @@ using namespace cv;
 /*
  * Struct to save every violation event data.
  */
-struct violationData{
+struct violationData
+{
     vector<Mat> imgs;
     string json;
 };
 
 
-inline size_t write_func(void *ptr, size_t size, size_t nmemb, string *s){
+inline size_t write_func(void *ptr, size_t size, size_t nmemb, string *s)
+{
     s->append(static_cast<char *>(ptr), size*nmemb);
     return size*nmemb;
 }
@@ -42,7 +44,8 @@ inline size_t write_func(void *ptr, size_t size, size_t nmemb, string *s){
  *****/
 class ViolationUploader
 {
-    ViolationUploader(string ip_param, string port_param){
+    ViolationUploader(string ip_param, string port_param)
+    {
         
         ip_address = ip_param;
         port_num = port_param;
@@ -67,20 +70,19 @@ public:
     
 
     // void operator=(const ViolationUploader &) = delete;
+    static ViolationUploader *GetInstance(const string &ip_param, const string &port_param);
 
     vector<string> postImages(const vector<Mat> &imgs);
     void postJsonData(const string &json_data);
     void postJson(string &json_incomp, const vector<string> &ids);
-
-
-    static ViolationUploader *GetInstance(const string &ip_param);
 
     void collectInfo(violationData *data_p);
     void postInfo();
 
 };
 
-void ThreadUploader();
+void ThreadUploader(const string &, const string &);
+void GetNodeConfig(const string &ip_param, const string &port_param, const string &node_id);
 
 
 
