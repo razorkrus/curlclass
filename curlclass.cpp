@@ -103,6 +103,7 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
         string s;
         curl_easy_setopt(image_curl, CURLOPT_WRITEDATA, &s);
 
+        lOG(INFO) << "Posting images to backend!" << endl;
         res = curl_easy_perform(image_curl);
 
         if (res!=CURLE_OK){
@@ -145,6 +146,8 @@ void ViolationUploader::postJsonData(const string &json_data)
         // headers = curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
         // curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(json_curl, CURLOPT_POSTFIELDS, json_data.c_str());
+
+        LOG(INFO) << "Posting json data to backend!" << endl;
         res = curl_easy_perform(json_curl);
 
         LOG_IF(ERROR, res!=CURLE_OK)    << "Inside function" << __func__ 
@@ -257,7 +260,7 @@ void ThreadUploader(const string &ip_param, const string &port_param)
 }
 
 
-void GetNodeConfig(const string &ip_param, const string &port_param, const string &node_id)
+bool GetNodeConfig(const string &ip_param, const string &port_param, const string &node_id, string &s)
 {
     CURL *curl;
     CURLcode res;
@@ -271,70 +274,71 @@ void GetNodeConfig(const string &ip_param, const string &port_param, const strin
         curl_easy_setopt(curl, CURLOPT_URL, get_url.c_str());
         
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_func);
-        string s;
+
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
 
         res = curl_easy_perform(curl);
         if (res != CURLE_OK)
         {
             LOG(ERROR) << "curl_easy_perform() failed: " << curl_easy_strerror(res) << endl;
-        }
-        else
-        {
-            // LOG(INFO) << "s is: " << s << endl;
-            Document doc;
-            doc.Parse(s.c_str(), s.size());
-            // LOG(INFO) << "config is: " << doc["data"]["config"].GetString() << endl;
-            // LOG(INFO) << " data is string: " << doc["data"].IsString() << endl;
-            // LOG(INFO) << " config is string: " << doc["data"]["config"].IsString() << endl;
-            if (doc["data"].HasMember("config"))
-            {
-                string t = doc["data"]["config"].GetString();
-                Document d;
-                d.Parse(t.c_str(), t.size());
-
-                LOG(INFO) << "d is object: " << d.IsObject() << endl;
-                LOG(INFO) << "d has BIKE_AREA: " << d.HasMember("BIKE_AREA") << endl;
-                LOG(INFO) << "bike_area is array: " << d["BIKE_AREA"].IsArray() << endl;
-
-                // if (d.HasMember("BIKE_AREA"))
-                // {
-                //     const Value &a = d["BIKE_AREA"];
-                //     for (SizeType i = 0; i < a.Size(); i++)
-                //         LOG(INFO) << a[i].GetString() << endl;
-                // }
-                vector<string> keys = {"BIKE_AREA","CAR_AREA", "WARNING_AREA_1", "WARNING_AREA_2"};
-
-                for (auto k:keys)
-                {
-                    if (d.HasMember(k.c_str()))
-                            {
-                                LOG(INFO) << "====== Printing " << k << " ======" << endl;
-                                const Value &a = d[k.c_str()];
-                                for (SizeType i = 0; i < a.Size(); i++){
-                                    // LOG(INFO) << a[i].GetString() << endl;
-                                    string tt = a[i].GetString();
-                                    tt = tt.substr(1, tt.size()-2);
-                                    auto index = tt.find(",");
-                                    int x = stoi(tt.substr(0, index));
-                                    int y = stoi(tt.substr(index+2, tt.size()-1));
-                                    LOG(INFO) << x << " " << y << endl;
-                                    // LOG(INFO) << stoi(t.substr(0, index)) << " " << stoi(tt.substr(index+2, tt.size()-1)) << endl;
-                                    // LOG(INFO) << tt.substr(1, tt.size()-2) << endl;
-                                }
-                                    
-                            }
-                }
-            }
-            else
-            {
-                LOG(ERROR) << "No config data found! Please check config existence from front-end." << endl;
-            }
+            curl_easy_cleanup(curl);
+            curl_global_cleanup();
+            return false;
         }
         curl_easy_cleanup(curl);
     }
-
     curl_global_cleanup();
+    return true;
+}
+
+bool ParseNodeConfig(string &s, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2)
+{
+    Document doc;
+    doc.Parse(s.c_str(), s.size());
+    if (doc["data"].HasMember("config"))
+    {
+        string t = doc["data"]["config"].GetString();
+        Document d;
+        d.Parse(t.c_str(), t.size());
+        LOG(INFO) << "d is object: " << d.IsObject() << endl;
+        LOG(INFO) << "d has BIKE_AREA: " << d.HasMember("BIKE_AREA") << endl;
+        LOG(INFO) << "bike_area is array: " << d["BIKE_AREA"].IsArray() << endl;
+        vector<string> keys = {"BIKE_AREA","CAR_AREA", "WARNING_AREA_1", "WARNING_AREA_2"};
+        map<string, vector<Point>> AREA;
+        AREA.insert(make_pair(keys[0], bike_area));
+        AREA.insert(make_pair(keys[1], car_area));
+        AREA.insert(make_pair(keys[2], warning_area1));
+        AREA.insert(make_pair(keys[3], warning_area2));
+
+        for (auto k:keys)
+        {
+            if (d.HasMember(k.c_str()))
+            {
+                LOG(INFO) << "====== Printing " << k << " ======" << endl;
+                
+                const Value &a = d[k.c_str()];
+                for (SizeType i = 0; i < a.Size(); i++){
+                    string tt = a[i].GetString();
+                    tt = tt.substr(1, tt.size()-2);
+                    auto index = tt.find(",");
+                    int x = stoi(tt.substr(0, index));
+                    int y = stoi(tt.substr(index+2, tt.size()-1));
+                    LOG(INFO) << x << " " << y << endl;
+                    AREA[k].push_back(Point(x, y));
+                }                 
+            }
+        }  
+        bike_area = AREA["BIKE_AREA"];
+        car_area = AREA["CAR_AREA"];
+        warning_area1 = AREA["WARNING_AREA_1"];
+        warning_area2 = AREA["WARNING_AREA_2"];
+    }
+    else
+    {
+        LOG(ERROR) << "No config data found! Please check config existence from front-end." << endl;
+        return false;
+    }
+    return true;
 }
 
 

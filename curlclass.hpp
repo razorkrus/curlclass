@@ -51,6 +51,7 @@ class ViolationUploader
         port_num = port_param;
         image_upload_url = "http://" + ip_address + ":" + port_num +"/api/file/upload";
         json_upload_url = "http://" + ip_address + ":" + port_num +"/api/record/insert";
+        two_curl_init();
     }
     ~ViolationUploader() {}
 
@@ -85,8 +86,9 @@ public:
 };
 
 void ThreadUploader(const string &, const string &);
-void GetNodeConfig(const string &ip_param, const string &port_param, const string &node_id);
-
+// void GetNodeConfig(const string &ip_param, const string &port_param, const string &node_id);
+bool GetNodeConfig(const string &ip_param, const string &port_param, const string &node_id, string &s);
+bool ParseNodeConfig(string &s, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2);
 
 
 #endif
