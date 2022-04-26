@@ -30,7 +30,7 @@ void ViolationUploader::two_curl_init()
     json_curl = curl_easy_init();
     if (json_curl)
     {
-        curl_easy_setopt(json_curl, CURLOPT_URL, image_upload_url.c_str());
+        curl_easy_setopt(json_curl, CURLOPT_URL, json_upload_url.c_str());
         curl_easy_setopt(json_curl, CURLOPT_TCP_KEEPALIVE, 1L);
         curl_easy_setopt(json_curl, CURLOPT_TCP_KEEPIDLE, 120L);
         curl_easy_setopt(json_curl, CURLOPT_TCP_KEEPINTVL, 60L);
@@ -71,9 +71,6 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
     curl_mime *form = nullptr;
     curl_mimepart *field = nullptr;
 
-    // curl_global_init(CURL_GLOBAL_ALL);
-    // curl = curl_easy_init();
-
     CURLcode res;
     vector<string> r;
 
@@ -88,17 +85,18 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
         curl_mime_name(field, "isDir");
         curl_mime_data(field, "False", CURL_ZERO_TERMINATED);
 
+        int i = 1;
         for (auto m : imgs){
             field = curl_mime_addpart(form);
             curl_mime_name(field, "file");
             vector<uchar> vec_img;
             imencode(".jpg", m, vec_img);
-            curl_mime_filename(field, "001.jpg"); // need to change later to add a suitable file name
+            string file_name = to_string(i++) + ".jpg";
+            curl_mime_filename(field, file_name.c_str());
             curl_mime_data(field, reinterpret_cast<const char*>(vec_img.data()), vec_img.size());
         }
         curl_easy_setopt(image_curl, CURLOPT_MIMEPOST, form);
 
-        // curl_easy_setopt(curl, CURLOPT_URL, image_upload_url.c_str());
         curl_easy_setopt(image_curl, CURLOPT_WRITEFUNCTION, write_func);
         string s;
         curl_easy_setopt(image_curl, CURLOPT_WRITEDATA, &s);
@@ -119,10 +117,7 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
                 r.push_back(a[i]["id"].GetString());
             }
         }
-
-        // curl_easy_cleanup(curl);
     }
-    // curl_global_cleanup();
 
     LOG(INFO) << "Function postImages end!" << endl;
 
@@ -132,19 +127,11 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
 
 void ViolationUploader::postJsonData(const string &json_data)
 {
-
     LOG(INFO) << "Function postJsonData begin!" << endl;
 
     CURLcode res;
 
-    // curl_global_init(CURL_GLOBAL_ALL);
-    // curl = curl_easy_init();
-
     if (json_curl){
-        // curl_easy_setopt(curl, CURLOPT_URL, json_upload_url.c_str());
-        // struct curl_slist* headers = nullptr;
-        // headers = curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
-        // curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(json_curl, CURLOPT_POSTFIELDS, json_data.c_str());
 
         LOG(INFO) << "Posting json data to backend!" << endl;
@@ -153,11 +140,7 @@ void ViolationUploader::postJsonData(const string &json_data)
         LOG_IF(ERROR, res!=CURLE_OK)    << "Inside function" << __func__ 
                                         << ", curl_easy_perform() faild: " << curl_easy_strerror(res) 
                                         << endl;
-
-        // curl_easy_cleanup(curl);
     }
-
-    // curl_global_cleanup();
 
     LOG(INFO) << "Function postJsonData end!" << endl;
 }
@@ -165,7 +148,6 @@ void ViolationUploader::postJsonData(const string &json_data)
 
 void ViolationUploader::postJson(string &json_incomp, const vector<string> &ids)
 {
-
     LOG(INFO) << "Function postJson begin!" << endl;
 
     LOG_IF(ERROR, ids.size()!=3) << "ids.size() is not 3! Its value is: " << ids.size() << endl;
