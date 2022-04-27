@@ -103,7 +103,10 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
 
         lOG(INFO) << "Posting images to backend!" << endl;
         res = curl_easy_perform(image_curl);
-
+        
+        // free curl_mime object
+        curl_mime_free(form);
+        
         if (res!=CURLE_OK){
             LOG(ERROR)  << "Inside function" << __func__ 
                         << ", curl_easy_perform() faild: " << curl_easy_strerror(res) 
