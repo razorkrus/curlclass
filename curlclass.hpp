@@ -51,7 +51,8 @@ class ViolationUploader
         port_num = port_param;
         image_upload_url = "http://" + ip_address + ":" + port_num +"/api/file/upload";
         json_upload_url = "http://" + ip_address + ":" + port_num +"/api/record/insert";
-        two_curl_init();
+        heartbeat_url = "http://" + ip_address + ":" + port_num + "/data/road/add";
+        curls_init();
     }
     ~ViolationUploader() {}
 
@@ -64,10 +65,12 @@ private:
     string port_num;
     string image_upload_url;
     string json_upload_url;
+    string heartbeat_url;
     CURL *image_curl;
     CURL *json_curl;
+    CURL *heartbeat_curl;
 
-    void two_curl_init();
+    void curls_init();
 
 public:
     // ViolationUploader(ViolationUploader &other) = delete;
@@ -77,6 +80,7 @@ public:
     static ViolationUploader *GetInstance(const string &ip_param, const string &port_param);
 
     vector<string> postImages(const vector<Mat> &imgs);
+    void postHeartbeat(const string &road_data);
     void postJsonData(const string &json_data);
     void postJson(string &json_incomp, const vector<string> &ids);
 

@@ -9,7 +9,7 @@ mutex mutex_instance;
 mutex mutex_queue;
 
 
-void ViolationUploader::two_curl_init()
+void ViolationUploader::curls_init()
 {
     curl_global_init(CURL_GLOBAL_ALL);
 
@@ -42,6 +42,23 @@ void ViolationUploader::two_curl_init()
         struct curl_slist* headers = nullptr;
         headers = curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
         curl_easy_setopt(json_curl, CURLOPT_HTTPHEADER, headers);
+    }
+
+    heartbeat_curl = curl_easy_init();
+    if (heartbeat_curl)
+    {
+        curl_easy_setopt(heartbeat_curl, CURLOPT_URL, heartbeat_url.c_str());
+        curl_easy_setopt(heartbeat_curl, CURLOPT_TCP_KEEPALIVE, 1L);
+        curl_easy_setopt(heartbeat_curl, CURLOPT_TCP_KEEPIDLE, 120L);
+        curl_easy_setopt(heartbeat_curl, CURLOPT_TCP_KEEPINTVL, 60L);
+
+        curl_easy_setopt(heartbeat_curl, CURLOPT_NOSIGNAL, 1L);
+        curl_easy_setopt(heartbeat_curl, CURLOPT_TIMEOUT, 30L);
+        curl_easy_setopt(heartbeat_curl, CURLOPT_CONNECTTIMEOUT, 10L);
+        
+        struct curl_slist* headers = nullptr;
+        headers = curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
+        curl_easy_setopt(heartbeat_curl, CURLOPT_HTTPHEADER, headers);
     }
 
 }
@@ -106,7 +123,7 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
         
         // free curl_mime object
         curl_mime_free(form);
-        
+
         if (res!=CURLE_OK){
             LOG(ERROR)  << "Inside function" << __func__ 
                         << ", curl_easy_perform() faild: " << curl_easy_strerror(res) 
@@ -127,6 +144,22 @@ vector<string> ViolationUploader::postImages(const vector<Mat> &imgs)
     return r;
 }
 
+void ViolationUploader::postHeartbeat(const string &road_data)
+{
+    CURLcode res;
+
+    if (heartbeat_curl)
+    {
+        curl_easy_setopt(heartbeat_curl, CURLOPT_POSTFIELDS, road_data.c_str());
+        
+        DLOG(INFO) << "Posting heartbeat to backend!" << endl;
+        res = curl_easy_perform(heartbeat_curl);
+
+        LOG_IF(ERROR, res!=CURLE_OK)    << "Inside function" << __func__ 
+                                        << ", curl_easy_perform() faild: " << curl_easy_strerror(res) 
+                                        << endl;
+    }
+}
 
 void ViolationUploader::postJsonData(const string &json_data)
 {
