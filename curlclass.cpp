@@ -309,7 +309,7 @@ bool GetNodeConfig(const string &ip_param, const string &port_param, const strin
     return true;
 }
 
-bool ParseNodeConfig(string &s, vector<bool> violation_type, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2)
+bool ParseNodeConfig(string &s, vector<bool> &violation_type, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2)
 {
     Document doc;
     doc.Parse(s.c_str(), s.size());
