@@ -309,18 +309,20 @@ bool GetNodeConfig(const string &ip_param, const string &port_param, const strin
     return true;
 }
 
-bool ParseNodeConfig(string &s, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2)
+bool ParseNodeConfig(string &s, vector<bool> violation_type, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2)
 {
     Document doc;
     doc.Parse(s.c_str(), s.size());
-    if (doc["data"].HasMember("config"))
+    if (doc["data"].HasMember("nodesList") && doc["data"]["nodesList"][0].HasMember("config"))
     {
-        string t = doc["data"]["config"].GetString();
+        string t = doc["data"]["nodesList"][0]["config"].GetString();
         Document d;
         d.Parse(t.c_str(), t.size());
         LOG(INFO) << "d is object: " << d.IsObject() << endl;
         LOG(INFO) << "d has BIKE_AREA: " << d.HasMember("BIKE_AREA") << endl;
         LOG(INFO) << "bike_area is array: " << d["BIKE_AREA"].IsArray() << endl;
+
+        // Processing AREA paramters
         vector<string> keys = {"BIKE_AREA","CAR_AREA", "WARNING_AREA_1", "WARNING_AREA_2"};
         map<string, vector<Point>> AREA;
         AREA.insert(make_pair(keys[0], bike_area));
@@ -350,6 +352,20 @@ bool ParseNodeConfig(string &s, vector<Point> &bike_area, vector<Point> &car_are
         car_area = AREA["CAR_AREA"];
         warning_area1 = AREA["WARNING_AREA_1"];
         warning_area2 = AREA["WARNING_AREA_2"];
+
+        // Processing violation type parameters
+        if (d.HasMember("VIOLATION_TYPE"))
+        {
+            const Value &a = d["VIOLATION_TYPE"];
+            for (SizeType i = 0; i < a.Size(); i++)
+            {
+                string tt = a[i].GetString();
+                if (tt == "True")
+                    violation_type.push_back(true);
+                else if (tt = "False")
+                    violation_type.push_back(false);
+            }
+        }
     }
     else
     {
