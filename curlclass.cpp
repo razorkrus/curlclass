@@ -309,7 +309,95 @@ bool GetNodeConfig(const string &ip_param, const string &port_param, const strin
     return true;
 }
 
-bool ParseNodeConfig(string &s, vector<bool> &violation_type, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2)
+
+// group_id = "fc68186d-9abe-457b-a106-06dbe8ff88db";
+bool GetGroupConfig(const string &ip_param, const string &port_param, const string &group_id, string &s)
+{
+    CURL *curl;
+    CURLcode res;
+
+    curl_global_init(CURL_GLOBAL_ALL);
+    curl = curl_easy_init();
+
+    if (curl){
+        string get_url = "http://" + ip_param + ":" + port_param +"/data/group/info/" + group_id;
+
+        curl_easy_setopt(curl, CURLOPT_URL, get_url.c_str());
+        
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_func);
+
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
+
+        res = curl_easy_perform(curl);
+        if (res != CURLE_OK)
+        {
+            LOG(ERROR) << "curl_easy_perform() failed: " << curl_easy_strerror(res) << endl;
+            curl_easy_cleanup(curl);
+            curl_global_cleanup();
+            return false;
+        }
+        curl_easy_cleanup(curl);
+    }
+    curl_global_cleanup();
+    return true;
+}
+
+
+
+bool ParseNodeConfig(string &s, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2)
+{
+    Document doc;
+    doc.Parse(s.c_str(), s.size());
+    if (doc["data"].HasMember("config"))
+    {
+        string t = doc["data"]["config"].GetString();
+        Document d;
+        d.Parse(t.c_str(), t.size());
+        LOG(INFO) << "d is object: " << d.IsObject() << endl;
+        LOG(INFO) << "d has BIKE_AREA: " << d.HasMember("BIKE_AREA") << endl;
+        LOG(INFO) << "bike_area is array: " << d["BIKE_AREA"].IsArray() << endl;
+
+        // Processing AREA paramters
+        vector<string> keys = {"BIKE_AREA","CAR_AREA", "WARNING_AREA_1", "WARNING_AREA_2"};
+        map<string, vector<Point>> AREA;
+        AREA.insert(make_pair(keys[0], bike_area));
+        AREA.insert(make_pair(keys[1], car_area));
+        AREA.insert(make_pair(keys[2], warning_area1));
+        AREA.insert(make_pair(keys[3], warning_area2));
+
+        for (auto k:keys)
+        {
+            if (d.HasMember(k.c_str()))
+            {
+                LOG(INFO) << "====== Printing " << k << " ======" << endl;
+                
+                const Value &a = d[k.c_str()];
+                for (SizeType i = 0; i < a.Size(); i++){
+                    string tt = a[i].GetString();
+                    tt = tt.substr(1, tt.size()-2);
+                    auto index = tt.find(",");
+                    int x = stoi(tt.substr(0, index));
+                    int y = stoi(tt.substr(index+2, tt.size()-1));
+                    LOG(INFO) << x << " " << y << endl;
+                    AREA[k].push_back(Point(x, y));
+                }                 
+            }
+        }  
+        bike_area = AREA["BIKE_AREA"];
+        car_area = AREA["CAR_AREA"];
+        warning_area1 = AREA["WARNING_AREA_1"];
+        warning_area2 = AREA["WARNING_AREA_2"];
+    }
+    else
+    {
+        LOG(ERROR) << "No config data found! Please check config existence from front-end." << endl;
+        return false;
+    }
+    return true;
+}
+
+
+bool ParseGroupConfig(string &s, vector<bool> &violation_type, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2)
 {
     Document doc;
     doc.Parse(s.c_str(), s.size());
@@ -374,8 +462,6 @@ bool ParseNodeConfig(string &s, vector<bool> &violation_type, vector<Point> &bik
     }
     return true;
 }
-
-
 
 /* 
  * main function used to test.

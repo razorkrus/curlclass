@@ -92,7 +92,10 @@ public:
 void ThreadUploader(const string &, const string &);
 // void GetNodeConfig(const string &ip_param, const string &port_param, const string &node_id);
 bool GetNodeConfig(const string &ip_param, const string &port_param, const string &node_id, string &s);
-bool ParseNodeConfig(string &s, vector<bool> &violation_type, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2);
+bool GetGroupConfig(const string &ip_param, const string &port_param, const string &group_id, string &s);
+
+bool ParseNodeConfig(string &s, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2);
+bool ParseGroupConfig(string &s, vector<bool> &violation_type, vector<Point> &bike_area, vector<Point> &car_area, vector<Point> &warning_area1, vector<Point> &warning_area2);
 
 
 #endif
